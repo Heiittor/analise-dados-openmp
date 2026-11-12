@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Confere a origem dos resultados, revalida o projeto e gera Markdown/PDF."""
 from pathlib import Path
+import argparse
 from datetime import datetime, timezone, timedelta
 import json
 import os
@@ -15,28 +16,47 @@ ROOT=Path(__file__).resolve().parents[1]
 
 
 def main():
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--usar-registros',action='store_true',help='Revisa somente os documentos usando os registros existentes; mantem a verificacao de hashes.')
+    args=parser.parse_args()
     summaries,samples,meta=verificar_medicoes()
     environment=json.loads((ROOT/'resultados/ambiente.json').read_text(encoding='utf-8'))
-    logs=[]
-    for name in ['validar.py','testar_processos.py','testar_auditoria.py','testar_pdf.py','testar_medicoes.py']:
-        result=executar([sys.executable,ROOT/'testes'/name],cwd=ROOT)
-        logs.append(dict(teste=name,codigo_saida=result.returncode,stdout=result.stdout,stderr=result.stderr))
-    (ROOT/'resultados/testes.json').write_text(json.dumps(logs,indent=2,ensure_ascii=False),encoding='utf-8')
-    logtext='\n'.join(f"{r['teste']}: retorno {r['codigo_saida']}\n{r['stdout']}{r['stderr']}" for r in logs)
-    (ROOT/'resultados/testes.txt').write_text(logtext,encoding='utf-8')
-    exe=ROOT/('build/openmp_cv.exe' if os.name=='nt' else 'build/openmp_cv')
+    if args.usar_registros:
+        logs=json.loads((ROOT/'resultados/testes.json').read_text(encoding='utf-8'))
+        if not logs or any(item['codigo_saida']!=0 for item in logs):
+            raise ValueError('Os registros existentes devem comprovar testes aprovados.')
+        output=(ROOT/'resultados/estatisticas.txt').read_text(encoding='utf-8')
+    else:
+        logs=[]
+        for name in ['validar.py','testar_processos.py','testar_auditoria.py','testar_pdf.py','testar_medicoes.py']:
+            result=executar([sys.executable,ROOT/'testes'/name],cwd=ROOT)
+            logs.append(dict(teste=name,codigo_saida=result.returncode,stdout=result.stdout,stderr=result.stderr))
+        (ROOT/'resultados/testes.json').write_text(json.dumps(logs,indent=2,ensure_ascii=False),encoding='utf-8')
+        exe=ROOT/('build/openmp_cv.exe' if os.name=='nt' else 'build/openmp_cv')
+        output=executar([exe,'dados/dados_1000_pessoas.txt','--threads','1'],cwd=ROOT).stdout
+        (ROOT/'resultados/estatisticas.txt').write_text(output,encoding='utf-8')
+    logtext='\n'.join(f"{item['teste']}: retorno {item['codigo_saida']}\n{item['stdout']}{item['stderr']}" for item in logs)
+    if not args.usar_registros:
+        (ROOT/'resultados/testes.txt').write_text(logtext,encoding='utf-8')
     probe=environment['verificacao_openmp']
     available=int(re.search(r'processadores=(\d+)',probe)[1])
-    limit=int(re.search(r'thread_limit=(\d+)',probe)[1])
-    threads=min(4,available,limit)
-    output=executar([exe,'dados/dados_1000_pessoas.txt','--threads',str(threads)],cwd=ROOT).stdout
-    (ROOT/'resultados/estatisticas.txt').write_text(output,encoding='utf-8')
+    # Conferir os valores registrados antes de usa-los na revisao documental.
+    expected=(ROOT/'dados/VALIDACAO_BASE.txt').read_text(encoding='utf-8')
+    for label,section in [('ESTATURA','AGRUPADA'),('PESO','AGRUPADO')]:
+        reference=expected.split(label+' ('+section+')')[1].split('\n\n')[0]
+        block=output.split(label+' (')[1].split('\n\n')[0]
+        for a,b in [('media ponderada','media'),('variancia populacional','variancia_pop'),('desvio padrao populacional','desvio_pop'),('coeficiente de variacao','CV')]:
+            value=float(re.search(re.escape(a)+r': ([\d.]+)',reference)[1])
+            actual=float(re.search(re.escape(b)+r'=([\d.]+)',block)[1])
+            if abs(value-actual)>1e-10+1e-10*max(abs(value),abs(actual)):
+                raise ValueError('Estatistica registrada diverge da referencia: '+label+' '+b)
     blocks={name:output.split(name+' (')[1].split('\n\n')[0] for name in ['ESTATURA','PESO']}
     values={name:{key:re.search(re.escape(key)+r'=([\d.]+)',block)[1] for key in ['media','variancia_pop','desvio_pop','CV']}
             for name,block in blocks.items()}
     class_tables=[]
     for name,block in blocks.items():
-        table=[f'### {name}', '', '| Classe | Ponto médio | Frequência |','|---|---:|---:|']
+        unit='cm' if name=='ESTATURA' else 'kg'
+        table=[f'### {name.title()} ({unit})', '', '| Intervalo [a, b) | Ponto médio xᵢ | Frequência fᵢ |','|---|---:|---:|']
         table.extend('| '+line+' |' for line in block.splitlines() if line.startswith('['))
         class_tables.append('\n'.join(table))
     rows=[]
@@ -53,210 +73,197 @@ def main():
                  'Houve configuração paralela com tempo igual ou inferior ao sequencial; os valores medidos constam da tabela.')
     report=f"""# Análise de Dados com OpenMP
 
-Coeficiente de variação para dados agrupados - Projeto acadêmico
+Coeficiente de variação para estatura e peso em dados agrupados
 
-Instituição: IESB | Curso: Ciência da Computação
-
-Aluno(a): Heitor Ribeiro | Matrícula: 2412130143
-
-Disciplina: Programação Paralela | Turma: _____________________
-
+```identificacao
+Instituição: IESB · Curso: Ciência da Computação
+Aluno: Heitor Ribeiro · Matrícula: 2412130143
+Disciplina: Programação Paralela · Turma: __________________
 Professor: Rodrigo Gonçalves Pinto
+```
 
-Data da medição: {observed} (America/Sao_Paulo)
+Medição analisada: {observed} · Dados sintéticos · N = 1.000.
 
-## 1. Objetivo, dados e convenção
+## 1. Objetivo e conjunto de dados
 
-Calcular média ponderada, desvio padrão populacional e coeficiente de variação
-(CV) da estatura e do peso, agrupando 1.000 registros e comparando versões
-sequencial e paralela em C++17/OpenMP. O conjunto é inteiramente sintético,
-gerado com semente 20261112; não representa coleta de pessoas reais.
-O TXT contém estatura em centímetros e peso em quilogramas, sem cabeçalho,
-com espaço entre colunas e ponto decimal. Os primeiros dez pares incluem
-fronteiras exatas de classes.
+O exercício propõe calcular os coeficientes de variação da estatura e do peso
+de 1.000 pessoas, usando dados agrupados e OpenMP. Foram implementadas duas
+rotas completas em C++17: uma sequencial e outra paralela, com conferência
+de corretude e comparação dos tempos de processamento.
 
-O enunciado estabelece amplitudes de 8 cm e 4 kg, mas não fixa a origem.
-Adotou-se início=floor(mínimo/amplitude)*amplitude. As classes são [a,b):
-valores iguais a b pertencem à classe seguinte. O ponto médio é xi=a+amplitude/2.
-A estatura varia de 145,0 a 199,9 cm (sete classes, início em 144 cm); o peso,
-de 44,0 a 109,5 kg (17 classes, início em 44 kg). Cada variável contabiliza
-exatamente 1.000 registros, uma única vez cada. As tabelas vieram da execução C++.
+A base é inteiramente sintética, gerada com semente 20261112. Cada linha
+contém estatura em centímetros e peso em quilogramas, sem cabeçalho.
+Os primeiros dez pares incluem fronteiras exatas das classes. A base não
+representa uma coleta de pessoas reais nem permite inferências demográficas.
+
+## 2. Agrupamento e definição das estatísticas
+
+O enunciado fixa amplitudes de 8 cm para estatura e 4 kg para peso, sem
+determinar a origem. Adotou-se início = floor(mínimo/amplitude) × amplitude,
+separadamente para cada variável. As classes são semiabertas [a, b): um
+valor igual a b pertence à classe seguinte. O ponto médio é xᵢ = a + amplitude/2.
+
+Se fᵢ é a frequência da classe i e k é o número de classes, então
+N = Σᵢ fᵢ. Para i = 1, …, k, calculam-se a média agrupada μ, a variância
+populacional σ², o desvio padrão σ e o coeficiente de variação percentual:
+
+```math
+μ = [Σᵢ (xᵢ × fᵢ)] / N
+σ² = [Σᵢ fᵢ × (xᵢ − μ)²] / N
+σ = √(σ²)
+CV (%) = 100 × σ / μ
+```
+
+A variância usa divisor N. A média é ponderada pelos pontos médios e
+frequências, em vez de ser a média dos valores individuais. Utilizam-se
+duas passadas: a variância depende da média já concluída. Esse método evita
+a subtração de termos próximos da expressão alternativa E[X²] − E[X]².
+
+### Distribuições de frequência
+
+A estatura observada varia de 145,0 a 199,9 cm, em sete classes com origem
+em 144 cm. O peso varia de 44,0 a 109,5 kg, em 17 classes com origem em 44 kg.
+As duas somas de frequências são exatamente 1.000. As tabelas são extraídas
+da saída C++; nelas, mantém-se o ponto como separador decimal.
 
 {chr(10).join(class_tables)}
 
-## 2. Fórmulas e resultados
+## 3. Implementação e paralelização
 
-Com xi=ponto médio, fi=frequência e N=soma das frequências, utilizam-se:
+A rota sequencial executa extremos, construção de classes, frequências e
+estatísticas sem chamadas OpenMP no processamento. A rota paralela realiza
+o mesmo trabalho lógico com as estratégias resumidas a seguir.
 
-```text
-mu = sum(xi*fi) / N
-variancia_pop = sum(fi*(xi-mu)^2) / N
-sigma = sqrt(variancia_pop)
-CV_percentual = 100*sigma/mu
-```
+| Etapa | Estratégia OpenMP e segurança |
+|---|---|
+| Extremos | parallel for com reduction(min:...) e reduction(max:...). |
+| Pontos médios | parallel for schedule(static), com um escritor por posição. |
+| Frequências | Histograma privado por thread; combinação por classe após barreira. |
+| Média | parallel for reduction(+:soma_ponderada), acumulando xᵢ × fᵢ. |
+| Variância | Segunda redução, acumulando fᵢ × (xᵢ − μ)² com μ já concluída. |
 
-A média é agrupada, calculada pelos pontos médios. A variância é populacional
-(divisor N). O método tem duas passadas: a primeira obtém a média e a segunda
-acumula os desvios quadráticos em relação à média já concluída. Evita-se a
-subtração de termos grandes e próximos da fórmula E[X^2]-E[X]^2.
+Os dados de entrada são somente lidos pelas threads. Os histogramas privados
+evitam incrementos concorrentes na mesma frequência, e as reduções combinam
+acumuladores locais. Não se usa critical ou atomic por registro. As barreiras
+garantem as dependências; schedule(static) é adequado ao custo uniforme das
+iterações. Não há paralelismo aninhado nem divisão manual por IDs fixos.
 
-| Estatística | Estatura (cm) | Peso (kg) |
+Cada processamento das duas variáveis abre dez regiões paralelas. O ajuste
+dinâmico é desativado e o número real de threads é consultado dentro da equipe.
+
+## 4. Resultados estatísticos
+
+| Estatística | Estatura | Peso |
 |---|---:|---:|
-| Média agrupada | {e['media']} | {p['media']} |
-| Variância populacional (unidade^2) | {e['variancia_pop']} | {p['variancia_pop']} |
-| Desvio padrão populacional | {e['desvio_pop']} | {p['desvio_pop']} |
-| CV (%) | {e['CV']} | {p['CV']} |
+| Média agrupada | {e['media']} cm | {p['media']} kg |
+| Variância populacional | {e['variancia_pop']} cm² | {p['variancia_pop']} kg² |
+| Desvio padrão populacional | {e['desvio_pop']} cm | {p['desvio_pop']} kg |
+| CV | {e['CV']}% | {p['CV']}% |
 
-Os resultados conferem com dados/VALIDACAO_BASE.txt. Frequências e classes
-coincidem exatamente entre as versões; estatísticas são comparadas com
-tolerâncias absoluta e relativa de 1e-10. O programa calcula a partir do TXT,
-sem ler a referência ou conter os valores estatísticos esperados. O peso
-tem maior dispersão relativa neste conjunto sintético agrupado.
+Os resultados conferem com a referência estatística fornecida. Frequências,
+limites e pontos médios coincidem exatamente entre as versões; as estatísticas
+são comparadas com tolerâncias absoluta e relativa de 1e-10. O executável
+calcula a partir do TXT, sem ler valores esperados. O peso apresenta maior
+dispersão relativa neste conjunto sintético agrupado.
 
-## 3. Paralelização e segurança
+## 5. Comparação de desempenho
 
-A solução está em src/analise.hpp, src/analise.cpp e src/main.cpp. A rota
-sequencial executa todos os cálculos sem diretivas ou chamadas OpenMP no
-processamento. A rota paralela realiza o mesmo trabalho lógico:
+### Ambiente e método
 
-- Mínimo/máximo: parallel for com reduction(min:...) e reduction(max:...).
-  Uma reduction lógica verifica a validade dos valores.
-- Pontos médios: parallel for schedule(static); cada posição tem um escritor.
-- Frequências: histogramas privados por thread. Após a barreira, as contagens
-  são combinadas por classe, também com um único escritor por classe.
-- Média: parallel for reduction(+:soma_ponderada), acumulando xi*fi.
-- Variância: segundo parallel for reduction(+:soma_desvios_ponderados),
-  acumulando fi*(xi-mu)^2. A média é somente lida pelas threads.
-
-Não há critical/atomic por registro, paralelismo aninhado ou divisão de tarefas
-baseada em IDs fixos. Dados compartilhados de entrada são somente lidos;
-barreiras garantem as dependências entre etapas. O escalonamento static
-combina com o custo uniforme dos laços. As duas variáveis abrem, juntas,
-dez regiões paralelas por processamento. O ajuste dinâmico é desativado e
-o número real da equipe é consultado dentro da região de contagem.
-
-## 4. Ambiente e método de desempenho
-
-Ambiente medido: {environment['sistema']}; CPU {environment['cpu']};
-{available} processadores lógicos. Compilador: {environment['compilador'].splitlines()[0]}.
-Flags: {' '.join(environment['flags'])}. O teste mínimo confirmou duas threads
-e uma redução inteira correta. Configurações reais no benchmark: {', '.join(c['threads_reais'] for c in parallel)}.
-Variáveis OMP/GOMP herdadas: {json.dumps(environment['variaveis_openmp'],ensure_ascii=False)}.
-
-No Windows, o script de compilação copia libstdc++-6.dll, libgcc_s_seh-1.dll,
-libgomp-1.dll e libwinpthread-1.dll do mesmo GCC para build/. Isso preserva a
-correção da incompatibilidade identificada com bibliotecas homônimas do Git Bash.
-Origens e hashes estão em resultados/ambiente.json; não se muda o PATH global.
-
-Mede-se com omp_get_wtime na thread principal, com dados já lidos. Há cinco
-processamentos de aquecimento por configuração, fora do cronômetro, e
-{n_samples} amostras de {repetitions} processamentos completos. Cada amostra é dividida
-por {repetitions}, mantendo a mesma base de 1.000 pares e as mesmas repetições em
-todas as rotas. A primeira configuração muda a cada rodada para reduzir
-viés de ordem. A corretude é conferida após cada configuração/amostra,
-fora do trecho medido. A referência é sequencial real; paralelo com uma
-thread aparece separadamente e mantém o custo do runtime.
-
-O trecho cronometrado inclui extremos, construção e alocação das classes,
-contagem, conferência dos totais, estatísticas das duas variáveis e liberação
-dos resultados. Inclui um pequeno checksum volatile de custo igual nas duas
-rotas, tornando a computação observável. Não há LTO; o processamento está em
-outra unidade de tradução. Excluem-se leitura de disco, impressão, testes,
-geração do dataset e escrita dos CSVs.
+Ambiente: {environment['sistema']}; CPU {environment['cpu']}; {available}
+processadores lógicos. Compilador: {environment['compilador'].splitlines()[0]}.
 
 ```text
-speedup = mediana_sequencial / mediana_paralela
-eficiencia = speedup / threads_reais
+Flags: {' '.join(environment['flags'])}
 ```
 
-## 5. Medições e interpretação
+Há cinco processamentos de aquecimento por configuração, fora do cronômetro.
+O benchmark usa omp_get_wtime na thread principal, com {n_samples} amostras de
+{repetitions} processamentos completos por configuração. Divide-se cada lote por
+{repetitions} para obter o tempo por processamento. Mantêm-se os mesmos 1.000 pares
+e o mesmo número de repetições em todas as versões. A ordem das configurações
+alterna a cada rodada, e a corretude é conferida após cada amostra.
 
-Tempos por processamento completo de ambas as variáveis, em microssegundos (us).
-Eficiência expressa em percentual. Todas as medidas abaixo são desta execução.
+O tempo inclui extremos, classes e suas alocações, histogramas, conferência
+dos totais, estatísticas das duas variáveis e liberação dos resultados.
+Inclui-se um pequeno checksum volatile comum às rotas para tornar a computação
+observável; não se usa LTO. Leitura de disco, impressão, testes e escrita dos
+CSVs ficam fora da medição. A rota OpenMP com uma thread é medida separadamente
+da versão sequencial real.
 
-| Versão | Threads | Mediana us | Speedup | Eficiência % |
+```math
+Speedup = mediana sequencial / mediana paralela
+Eficiência = speedup / número real de threads
+```
+
+### Tempos observados e interpretação
+
+Medianas por processamento completo, em microssegundos (µs). A eficiência
+é expressa em percentual. Todos os valores provêm da mesma medição registrada.
+
+| Versão | Threads | Mediana (µs) | Speedup | Eficiência (%) |
 |---|---:|---:|---:|---:|
 {chr(10).join(rows)}
 
-{observation} A menor mediana foi da versão {best['versao']} com
-{best['threads_reais']} thread(s). O trabalho de apenas 1.000 registros, com laços
-estatísticos de sete e 17 classes, é pequeno diante do custo de regiões,
-barreiras, reduções e histogramas privados. Essa é uma interpretação dos
-tempos completos: os custos individuais não foram isolados experimentalmente.
+{observation} A versão {best['versao']} apresentou a menor mediana.
+Para esta entrada pequena, os custos de regiões paralelas, barreiras,
+reduções e combinação dos histogramas superam o trabalho distribuído.
+Os laços estatísticos têm apenas sete e 17 classes. Essa interpretação
+explica os tempos completos; os custos individuais não foram medidos separadamente.
 
 Não se fixou afinidade nem se controlou exclusivamente carga, temperatura ou
-política de energia. A CPU tem arquitetura híbrida e o escalonamento pode
-variar. Os tempos não devem ser generalizados para outras máquinas ou sessões.
-Não se aumentou N para buscar ganho artificial; repetir o processamento não
-transforma cada execução em uma base maior.
+política de energia. O escalonamento da CPU híbrida pode variar. Os resultados
+descrevem esta execução, sem generalização para outras máquinas. Não se aumentou
+N artificialmente para buscar ganho; repetir a mesma base não amplia cada processamento.
 
-Os {len(samples)} registros individuais estão em resultados/amostras.csv; as medianas,
-em resultados/benchmark.csv. O gerador recalcula medianas, speedup e eficiência
-a partir das amostras. resultados/benchmark_execucao.json registra comando,
-horários, retorno e hashes do executável, fontes, entrada, ambiente e CSVs;
-esses hashes também são conferidos antes de gerar este relatório. As medidas
-históricas preservadas em resultados/historico não alimentam as tabelas finais.
+## 6. Validação, rastreabilidade e conclusão
 
-A medição foi executada por ferramentas/medir.py, com integridade conferida
-antes e depois do processamento. Seu identificador é {meta['id_medicao']}.
-O conjunto original desta execução está em {meta['pasta_medicao']}.
-O comando C++ direto gera somente CSVs; o script de medição publica CSVs e
-metadados juntos após a conferência. O relatório não atualiza hashes de dados
-antigos e rejeita conjuntos divergentes.
+O caso manual de estaturas [145, 145, 153, 169] produz pontos médios
+[148, 156, 164, 172], frequências [2, 1, 0, 1], média 156 e variância 96.
+Os testes também cobrem fronteiras exatas e valores adjacentes em double,
+classes vazias, N = 1, dados constantes e fronteira como máximo.
+Foram registradas {comparisons} comparações sequencial/paralela e 47 verificações
+funcionais, incluindo entradas inválidas e a integridade da base e da referência.
 
-## 6. Validação e independência
+No Windows, os testes verificam ainda os runtimes locais e o início dos
+executáveis com PATH restrito ao sistema. Os scripts de diagnóstico propagam
+códigos de saída e mensagens completas. Os registros detalhados ficam em
+resultados/testes.json; a auditoria histórica permanece separada dos testes funcionais.
 
-O caso manual usa estaturas [145,145,153,169], pontos médios [148,156,164,172]
-e frequências [2,1,0,1]: média=156, soma de desvios=384, variância=96 e
-CV=100*sqrt(96)/156. Para pesos [45,45,49,57], a média agrupada é 50 e a
-variância é 24. São resultados distintos de estatísticas dos valores brutos.
+As {len(samples)} amostras individuais e as medianas estão em resultados/amostras.csv
+e resultados/benchmark.csv. O registro benchmark_execucao.json associa a
+execução ao executável, às fontes, à entrada e ao ambiente por hashes,
+conferidos antes e depois da medição. O relatório recalcula os indicadores
+dos CSVs e rejeita registros divergentes. A revisão documental preserva essa
+medição e não executa um benchmark novo.
 
-Também se verificam fronteiras exatas e doubles imediatamente antes/depois,
-classes vazias, N=1, dados constantes e fronteira como máximo. Os cinco
-conjuntos são comparados 20 vezes por configuração viável. A entrada oficial
-mantém N=1.000. Arquivos ausentes/vazios, 999/1001 registros, texto, campos
-faltantes/extras, lixo, vírgula decimal, zero, negativos, nan, inf e overflow
-são recusados. Dataset e referência estatística possuem SHA-256 conferido.
+Conclui-se que os CVs são {e['CV']}% para estatura e {p['CV']}% para peso.
+A implementação cumpre o agrupamento e a paralelização solicitados com
+verificação de corretude. A versão sequencial foi mais rápida no conjunto
+analisado, evidenciando que paralelizar uma carga pequena não garante ganho.
 
-Resultado funcional: {logs[0]['stdout'].strip().splitlines()[-1]}
-O teste C++ realizou {comparisons} comparações sequencial/paralela.
-Os testes Python de diagnóstico, auditoria e PDF também terminaram com código zero;
-os registros completos estão em resultados/testes.json e testes.txt.
-A validação inclui os três executáveis com PATH restrito ao Windows.
+## 7. Reprodução
 
-Os testes funcionais não leem o manifesto histórico, o PDF do professor ou
-os códigos de aula. A auditoria dos 16 materiais é um comando opcional e
-explícito, com raiz e manifesto fornecidos pelo usuário; ausência ou alteração
-falha nessa auditoria. Ela não participa do fluxo de compilação, teste ou
-relatório acadêmico e não é necessária para utilizar a versão independente.
-
-## 7. Reprodução e conclusão
-
-No Git Bash, partindo do workspace OpenMP:
+No Git Bash, na raiz do repositório:
 
 ```bash
-cd projeto_openmp
 python -B ferramentas/compilar.py
 ./build/openmp_cv.exe dados/dados_1000_pessoas.txt --threads 4
 python -B testes/validar.py
-python -B testes/testar_processos.py
-python -B testes/testar_auditoria.py
-python -B testes/testar_pdf.py
-python -B testes/testar_medicoes.py
 python -B ferramentas/medir.py --amostras {n_samples} --repeticoes {repetitions}
 python -B ferramentas/gerar_relatorio.py
 ```
 
-O README inclui o comando g++ completo e equivalentes de PowerShell/Linux.
-Os auxiliares usam somente a biblioteca padrão do Python. A leitura rejeita
-entradas inválidas com mensagem e retorno 1. As falhas de subprocessos exibem
-comando, diretório, código decimal/hexadecimal, stdout e stderr.
+Para revisar somente os documentos, preservando a medição atual:
 
-Os CVs calculados são {e['CV']}% (estatura) e {p['CV']}% (peso).
-A implementação cumpriu o agrupamento e a paralelização solicitados, com
-comparação entre rotas e medidas reais. Para o conjunto pequeno desta execução,
-o resultado de desempenho deve ser interpretado conforme a tabela, sem
-presumir que mais threads produzam ganho.
+```bash
+python -B ferramentas/gerar_relatorio.py --usar-registros
+```
+
+O README apresenta todos os testes, as dependências e o procedimento Windows.
+O C++ direto produz somente CSVs; medir.py registra também os metadados de
+integridade necessários ao relatório. Fontes TrueType do sistema são
+incorporadas ao PDF; não são necessários pacotes Python adicionais.
 
 ## Referências bibliográficas
 
@@ -264,17 +271,20 @@ PINTO, Rodrigo Gonçalves. Exercício Final: Análise de Dados com OpenMP.
 IESB, 28 out. 2025. Enunciado acadêmico fornecido pelo professor, duas páginas.
 
 PINTO, R. G. Parallel Programming Examples in C++ using OpenMP. 2025.
-Material didático fornecido pelo professor: ambiente (001), parallel for (004),
-cronômetro/barreiras (005), sincronização (006), reduções e duas passadas
-(007) e tarefas/sections (008). As técnicas foram estudadas; a implementação
-foi escrita para este exercício. Os materiais do professor são citados,
-mas não são dependências nem estão incluídos nesta entrega independente.
+Material didático fornecido pelo professor: ambiente (001), laços (004),
+tempo e barreiras (005), sincronização (006), reduções e duas passadas (007)
+e tarefas (008). As técnicas foram estudadas e a solução foi escrita para
+este exercício. Os materiais são referências bibliográficas, sem constituir
+dependências da entrega independente.
 """
     folder=ROOT/'relatorio'
     folder.mkdir(exist_ok=True)
     (folder/'relatorio_openmp.md').write_text(report,encoding='utf-8')
     pages=converter(report,folder/'relatorio_openmp.pdf',ROOT/'resultados/diagrama_pdf.json')
-    print(logtext)
+    if args.usar_registros:
+        print('Integridade e registros existentes conferidos; sem recompilacao ou nova medicao.')
+    else:
+        print(logtext)
     print(f'Conferidas {len(samples)} amostras; relatorio Markdown/PDF gerado com {pages} paginas.')
 
 

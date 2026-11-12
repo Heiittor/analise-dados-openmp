@@ -7,7 +7,8 @@ import unittest
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'ferramentas'))
-from exportar_pdf import CAPACITY, CONTENT_WIDTH, converter, layout, literal, measure
+from exportar_pdf import CAPACITY, CONTENT_WIDTH, converter, layout, literal, measure, extrair_texto_pdf
+from fontes_pdf import fontes
 
 
 class PdfTests(unittest.TestCase):
@@ -46,6 +47,29 @@ class PdfTests(unittest.TestCase):
             self.assertIn(literal('Média ponderada'),data)
             offset=int(re.search(rb'startxref\n(\d+)',data)[1])
             self.assertTrue(data[offset:].startswith(b'xref\n'))
+
+    def test_fontes_incorporadas_e_extracao_unicode(self):
+        text='# Identificação acadêmica\n\nAnálise: Programação Paralela; média e frequência.\n\n```math\nμ = Σᵢ xᵢ × fᵢ / N\nσ = √(σ²)\n```\n'
+        with tempfile.TemporaryDirectory(dir=ROOT/'build') as directory:
+            path=Path(directory)/'unicode.pdf'
+            converter(text,path)
+            data=path.read_bytes()
+            self.assertEqual(data.count(b'/FontFile2'),3)
+            self.assertEqual(data.count(b'/ToUnicode'),3)
+            recovered=extrair_texto_pdf(path)
+            for term in ['Identificação acadêmica','Programação Paralela','média e frequência','μ = Σᵢ xᵢ × fᵢ / N','σ = √(σ²)']:
+                self.assertIn(term,recovered)
+            self.assertNotIn('\ufffd',recovered)
+            for font in fontes().values():
+                self.assertIn(('/BaseFont /'+font.name).encode(),data)
+
+    def test_formula_e_identificacao_sao_blocos_inteiros(self):
+        text='# Titulo\n\n```identificacao\nAluno: exemplo\nDisciplina: exemplo\n```\n\n```math\nσ² = [Σᵢ fᵢ × (xᵢ − μ)²] / N\nσ = √(σ²)\n```\n'
+        pages=layout(text)
+        formulas=[b for page in pages for b in page if b['kind']=='formula']
+        self.assertEqual(len(formulas),1)
+        self.assertEqual(len(formulas[0]['lines']),2)
+        self.assertTrue(any(b['kind']=='identity' for page in pages for b in page))
 
 
 if __name__=='__main__': unittest.main(verbosity=2)

@@ -1,0 +1,6 @@
+Versão,Threads,Mediana por processamento (µs),Speedup
+Sequencial,1,12.000,1.000000
+Paralela,1,60.000,0.199999
+Paralela,2,552.000,0.021739
+Paralela,4,1016.000,0.011811
+Paralela,8,1740.000,0.006897

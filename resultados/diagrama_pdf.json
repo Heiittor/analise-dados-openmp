@@ -1,21 +1,27 @@
 [
   {
     "pagina": 1,
-    "altura_usada": 512.0,
-    "altura_disponivel": 749,
+    "altura_usada": 657.0,
+    "altura_disponivel": 735,
+    "tabelas": []
+  },
+  {
+    "pagina": 2,
+    "altura_usada": 692.2,
+    "altura_disponivel": 735,
     "tabelas": [
       {
         "cabecalho": [
-          "Classe",
-          "Ponto médio",
-          "Frequência"
+          "Intervalo [a, b)",
+          "Ponto médio xᵢ",
+          "Frequência fᵢ"
         ],
         "linhas": 8,
         "conteudo": [
           [
-            "Classe",
-            "Ponto médio",
-            "Frequência"
+            "Intervalo [a, b)",
+            "Ponto médio xᵢ",
+            "Frequência fᵢ"
           ],
           [
             "[144.0, 152.0)",
@@ -53,26 +59,19 @@
             "17"
           ]
         ]
-      }
-    ]
-  },
-  {
-    "pagina": 2,
-    "altura_usada": 556.0,
-    "altura_disponivel": 749,
-    "tabelas": [
+      },
       {
         "cabecalho": [
-          "Classe",
-          "Ponto médio",
-          "Frequência"
+          "Intervalo [a, b)",
+          "Ponto médio xᵢ",
+          "Frequência fᵢ"
         ],
         "linhas": 18,
         "conteudo": [
           [
-            "Classe",
-            "Ponto médio",
-            "Frequência"
+            "Intervalo [a, b)",
+            "Ponto médio xᵢ",
+            "Frequência fᵢ"
           ],
           [
             "[44.0, 48.0)",
@@ -165,41 +164,74 @@
   },
   {
     "pagina": 3,
-    "altura_usada": 591.0,
-    "altura_disponivel": 749,
+    "altura_usada": 680.3,
+    "altura_disponivel": 735,
     "tabelas": [
       {
         "cabecalho": [
+          "Etapa",
+          "Estratégia OpenMP e segurança"
+        ],
+        "linhas": 6,
+        "conteudo": [
+          [
+            "Etapa",
+            "Estratégia OpenMP e segurança"
+          ],
+          [
+            "Extremos",
+            "parallel for com reduction(min:...) e reduction(max:...)."
+          ],
+          [
+            "Pontos médios",
+            "parallel for schedule(static), com um escritor por posição."
+          ],
+          [
+            "Frequências",
+            "Histograma privado por thread; combinação por classe após barreira."
+          ],
+          [
+            "Média",
+            "parallel for reduction(+:soma_ponderada), acumulando xᵢ × fᵢ."
+          ],
+          [
+            "Variância",
+            "Segunda redução, acumulando fᵢ × (xᵢ − μ)² com μ já concluída."
+          ]
+        ]
+      },
+      {
+        "cabecalho": [
           "Estatística",
-          "Estatura (cm)",
-          "Peso (kg)"
+          "Estatura",
+          "Peso"
         ],
         "linhas": 5,
         "conteudo": [
           [
             "Estatística",
-            "Estatura (cm)",
-            "Peso (kg)"
+            "Estatura",
+            "Peso"
           ],
           [
             "Média agrupada",
-            "170.9760000000",
-            "72.8400000000"
+            "170.9760000000 cm",
+            "72.8400000000 kg"
           ],
           [
-            "Variância populacional (unidade^2)",
-            "88.6794240000",
-            "146.5584000000"
+            "Variância populacional",
+            "88.6794240000 cm²",
+            "146.5584000000 kg²"
           ],
           [
             "Desvio padrão populacional",
-            "9.4169753106",
-            "12.1061306783"
+            "9.4169753106 cm",
+            "12.1061306783 kg"
           ],
           [
-            "CV (%)",
-            "5.5077761268",
-            "16.6201684216"
+            "CV",
+            "5.5077761268%",
+            "16.6201684216%"
           ]
         ]
       }
@@ -207,25 +239,25 @@
   },
   {
     "pagina": 4,
-    "altura_usada": 626.9,
-    "altura_disponivel": 749,
+    "altura_usada": 700.7,
+    "altura_disponivel": 735,
     "tabelas": [
       {
         "cabecalho": [
           "Versão",
           "Threads",
-          "Mediana us",
+          "Mediana (µs)",
           "Speedup",
-          "Eficiência %"
+          "Eficiência (%)"
         ],
         "linhas": 6,
         "conteudo": [
           [
             "Versão",
             "Threads",
-            "Mediana us",
+            "Mediana (µs)",
             "Speedup",
-            "Eficiência %"
+            "Eficiência (%)"
           ],
           [
             "sequencial",
@@ -268,8 +300,8 @@
   },
   {
     "pagina": 5,
-    "altura_usada": 651.3,
-    "altura_disponivel": 749,
+    "altura_usada": 608.4,
+    "altura_disponivel": 735,
     "tabelas": []
   }
 ]
