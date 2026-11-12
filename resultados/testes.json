@@ -1,0 +1,32 @@
+[
+  {
+    "teste": "validar.py",
+    "codigo_saida": 0,
+    "stdout": "OK: threads solicitadas=1, 20 repeticoes x 5 conjuntos\nOK: threads solicitadas=2, 20 repeticoes x 5 conjuntos\nOK: threads solicitadas=4, 20 repeticoes x 5 conjuntos\nOK: threads solicitadas=8, 20 repeticoes x 5 conjuntos\nPASSOU: estatistica manual, fronteiras, constantes, N=1, base oficial e 400 comparacoes sequencial/paralela.\nPASSOU: 47 verificacoes de integracao, alem dos testes C++.\n",
+    "stderr": ""
+  },
+  {
+    "teste": "testar_processos.py",
+    "codigo_saida": 0,
+    "stdout": "",
+    "stderr": "test_executavel_ausente (__main__.ProcessosTests.test_executavel_ausente) ... ok\ntest_falha_encadeada_nao_perde_causa_interna (__main__.ProcessosTests.test_falha_encadeada_nao_perde_causa_interna) ... ok\ntest_preserva_ambas_saidas (__main__.ProcessosTests.test_preserva_ambas_saidas) ... ok\ntest_retorno_esperado_nao_aceita_qualquer_erro (__main__.ProcessosTests.test_retorno_esperado_nao_aceita_qualquer_erro) ... ok\ntest_sem_stderr_ainda_identifica_comando_e_retorno (__main__.ProcessosTests.test_sem_stderr_ainda_identifica_comando_e_retorno) ... ok\ntest_status_windows_signed_unsigned (__main__.ProcessosTests.test_status_windows_signed_unsigned) ... ok\ntest_timeout_tem_diagnostico (__main__.ProcessosTests.test_timeout_tem_diagnostico) ... ok\n\n----------------------------------------------------------------------\nRan 7 tests in 0.751s\n\nOK\n"
+  },
+  {
+    "teste": "testar_auditoria.py",
+    "codigo_saida": 0,
+    "stdout": "",
+    "stderr": "test_integridade_ausencia_e_alteracao (__main__.AuditoriaTests.test_integridade_ausencia_e_alteracao) ... ok\ntest_manifesto_ausente_falha (__main__.AuditoriaTests.test_manifesto_ausente_falha) ... ok\ntest_manifesto_vazio_falha (__main__.AuditoriaTests.test_manifesto_vazio_falha) ... ok\n\n----------------------------------------------------------------------\nRan 3 tests in 0.135s\n\nOK\n"
+  },
+  {
+    "teste": "testar_pdf.py",
+    "codigo_saida": 0,
+    "stdout": "",
+    "stderr": "test_pdf_valido_com_acentos_e_colunas_sem_extravasar (__main__.PdfTests.test_pdf_valido_com_acentos_e_colunas_sem_extravasar) ... ok\ntest_tabela_inteira_perto_da_quebra (__main__.PdfTests.test_tabela_inteira_perto_da_quebra) ... ok\ntest_titulos_nao_ficam_sozinhos (__main__.PdfTests.test_titulos_nao_ficam_sozinhos) ... ok\ntest_ultima_pagina_equilibrada (__main__.PdfTests.test_ultima_pagina_equilibrada) ... ok\n\n----------------------------------------------------------------------\nRan 4 tests in 0.347s\n\nOK\n"
+  },
+  {
+    "teste": "testar_medicoes.py",
+    "codigo_saida": 0,
+    "stdout": "",
+    "stderr": "test_csv_nativo_novo_nao_autoriza_hash_antigo (__main__.MedicoesTests.test_csv_nativo_novo_nao_autoriza_hash_antigo) ... ok\ntest_entrada_ambiente_e_fontes_tambem_sao_verificados (__main__.MedicoesTests.test_entrada_ambiente_e_fontes_tambem_sao_verificados) ... ok\ntest_executavel_alterado_durante_medicao_nao_e_publicado (__main__.MedicoesTests.test_executavel_alterado_durante_medicao_nao_e_publicado) ... ok\ntest_falha_do_programa_nao_substitui_conjunto_anterior (__main__.MedicoesTests.test_falha_do_programa_nao_substitui_conjunto_anterior) ... ok\ntest_parametros_dos_csvs_devem_coincidir_com_a_execucao (__main__.MedicoesTests.test_parametros_dos_csvs_devem_coincidir_com_a_execucao) ... ok\ntest_recompilacao_exige_nova_medicao_e_atualiza_hash (__main__.MedicoesTests.test_recompilacao_exige_nova_medicao_e_atualiza_hash) ... ok\ntest_relatorio_nao_le_conjunto_durante_publicacao (__main__.MedicoesTests.test_relatorio_nao_le_conjunto_durante_publicacao) ... ok\ntest_tempo_zero_nao_e_publicado (__main__.MedicoesTests.test_tempo_zero_nao_e_publicado) ... ok\n\n----------------------------------------------------------------------\nRan 8 tests in 1.739s\n\nOK\n"
+  }
+]

@@ -1,0 +1,75 @@
+{
+  "sistema": "Windows-11-10.0.26200-SP0",
+  "cpu": "12th Gen Intel(R) Core(TM) i5-1235U",
+  "arquitetura": "AMD64",
+  "processadores_os": 12,
+  "compilador": "g++.EXE (Rev3, Built by MSYS2 project) 16.2.0\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+  "flags": [
+    "-std=c++17",
+    "-O2",
+    "-Wall",
+    "-Wextra",
+    "-Wpedantic",
+    "-fopenmp"
+  ],
+  "comandos": [
+    [
+      "C:\\msys64\\ucrt64\\bin\\g++.EXE",
+      "-std=c++17",
+      "-O2",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-fopenmp",
+      "testes/verificar_openmp.cpp",
+      "-o",
+      "build/verificar_openmp.exe"
+    ],
+    [
+      "C:\\msys64\\ucrt64\\bin\\g++.EXE",
+      "-std=c++17",
+      "-O2",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-fopenmp",
+      "src/main.cpp",
+      "src/analise.cpp",
+      "-o",
+      "build/openmp_cv.exe"
+    ],
+    [
+      "C:\\msys64\\ucrt64\\bin\\g++.EXE",
+      "-std=c++17",
+      "-O2",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-fopenmp",
+      "testes/testes.cpp",
+      "src/analise.cpp",
+      "-o",
+      "build/testes.exe"
+    ]
+  ],
+  "verificacao_openmp": "GCC 16.2.0 | _OPENMP=202111 | processadores=12 | max_threads=12 | thread_limit=2147483647 | equipe=2 | soma=2\n",
+  "runtime_local": {
+    "libstdc++-6.dll": {
+      "origem": "C:\\msys64\\ucrt64\\bin\\libstdc++-6.dll",
+      "sha256": "69200d6d96b903dac4c873031813485a0455828be8101479efc56008862420cc"
+    },
+    "libgcc_s_seh-1.dll": {
+      "origem": "C:\\msys64\\ucrt64\\bin\\libgcc_s_seh-1.dll",
+      "sha256": "80940372431cc76224dfda06e2d33f01e49af3b4e7c499c535be856ebcadd273"
+    },
+    "libgomp-1.dll": {
+      "origem": "C:\\msys64\\ucrt64\\bin\\libgomp-1.dll",
+      "sha256": "c13023e6a4f686b2a48aa966b1afbbeea488b196be00bfa19aa7f0d39204b87d"
+    },
+    "libwinpthread-1.dll": {
+      "origem": "C:\\msys64\\ucrt64\\bin\\libwinpthread-1.dll",
+      "sha256": "ed858c25be05f072fe6dc08bd9b9fc799afe8201b3575bb572b670b9c551184c"
+    }
+  },
+  "variaveis_openmp": {}
+}

@@ -1,0 +1,45 @@
+BASE SINTETICA DO DESAFIO OPENMP - CONTROLE DE VALIDACAO
+=======================================================
+Origem: gerada artificialmente; nao representa pessoas reais.
+Semente: 20261112. Gerador: ferramentas/gerar_dados.py.
+Linhas: 1000; colunas: 2 (estatura em cm, peso em kg).
+Formato: "estatura peso" com ponto decimal, sem cabecalho.
+SHA-256: 9ff5ae849aad828e5e00e6918fc8da5137d30d1fc6582da33d9ba32095bad0aa
+
+CONVENCAO PARA AGRUPAMENTO (ESCOLHA DE IMPLEMENTACAO)
+- Classes semiabertas [limite_inferior, limite_superior).
+- Primeira classe: floor(minimo / amplitude) * amplitude.
+- Estatura: amplitude 8 cm; peso: amplitude 4 kg.
+- Ponto medio xi = limite_inferior + amplitude/2.
+- Media = sum(fi * xi) / 1000.
+- Variancia populacional = sum(fi*(xi-media)^2) / 1000.
+- Desvio padrao = sqrt(variancia); CV (%) = 100*desvio/media.
+- Um valor EXATAMENTE sobre o limite superior pertence a proxima classe.
+- Essa convencao e explicita porque o PDF nao fixa o inicio das classes.
+
+ESTATURA (AGRUPADA)
+  minimo observado: 145.0 cm
+  maximo observado: 199.9 cm
+  primeira classe: [144.0, 152.0) cm
+  numero de classes: 7
+  soma das frequencias: 1000
+  media ponderada: 170.9760000000 cm
+  variancia populacional: 88.6794240000 cm^2
+  desvio padrao populacional: 9.4169753106 cm
+  coeficiente de variacao: 5.5077761268 %
+
+PESO (AGRUPADO)
+  minimo observado: 44.0 kg
+  maximo observado: 109.5 kg
+  primeira classe: [44.0, 48.0) kg
+  numero de classes: 17
+  soma das frequencias: 1000
+  media ponderada: 72.8400000000 kg
+  variancia populacional: 146.5584000000 kg^2
+  desvio padrao populacional: 12.1061306783 kg
+  coeficiente de variacao: 16.6201684216 %
+
+VERIFICACAO
+Os numeros acima sao valores de referencia calculados em Python.
+O codigo C++ DEVE recomputa-los a partir da base, nunca utiliza-los como constantes.
+Diferenças pequenas de arredondamento podem ocorrer com OpenMP.

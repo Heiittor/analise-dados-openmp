@@ -1,0 +1,10 @@
+/build/
+__pycache__/
+*.pyc
+
+# Arquivos gerados e auditorias internas
+/resultados/auditoria/
+/resultados/correcao_fluxo/
+/resultados/historico/
+/relatorio/auditoria_entrega.md
+/relatorio/correcao_fluxo_medicao.md

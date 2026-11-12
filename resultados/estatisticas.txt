@@ -1,0 +1,43 @@
+Analise de DADOS SINTETICOS agrupados; N=1000
+GCC 16.2.0; _OPENMP=202111; SO=Windows
+Processadores logicos=12; max_threads inicial=12; thread_limit=2147483647; dynamic=0
+
+ESTATURA (cm), N=1000, threads reais=4
+intervalo [inferior, superior) | ponto medio | frequencia
+[144.0, 152.0) | 148.0 | 15
+[152.0, 160.0) | 156.0 | 94
+[160.0, 168.0) | 164.0 | 276
+[168.0, 176.0) | 172.0 | 334
+[176.0, 184.0) | 180.0 | 198
+[184.0, 192.0) | 188.0 | 66
+[192.0, 200.0) | 196.0 | 17
+media=170.9760000000 cm
+variancia_pop=88.6794240000 cm^2
+desvio_pop=9.4169753106 cm
+CV=5.5077761268 %
+
+PESO (kg), N=1000, threads reais=4
+intervalo [inferior, superior) | ponto medio | frequencia
+[44.0, 48.0) | 46.0 | 24
+[48.0, 52.0) | 50.0 | 20
+[52.0, 56.0) | 54.0 | 47
+[56.0, 60.0) | 58.0 | 58
+[60.0, 64.0) | 62.0 | 79
+[64.0, 68.0) | 66.0 | 114
+[68.0, 72.0) | 70.0 | 130
+[72.0, 76.0) | 74.0 | 140
+[76.0, 80.0) | 78.0 | 107
+[80.0, 84.0) | 82.0 | 103
+[84.0, 88.0) | 86.0 | 67
+[88.0, 92.0) | 90.0 | 53
+[92.0, 96.0) | 94.0 | 31
+[96.0, 100.0) | 98.0 | 14
+[100.0, 104.0) | 102.0 | 10
+[104.0, 108.0) | 106.0 | 2
+[108.0, 112.0) | 110.0 | 1
+media=72.8400000000 kg
+variancia_pop=146.5584000000 kg^2
+desvio_pop=12.1061306783 kg
+CV=16.6201684216 %
+
+Validacao sequencial/paralela: OK (abs=1e-10, rel=1e-10).
